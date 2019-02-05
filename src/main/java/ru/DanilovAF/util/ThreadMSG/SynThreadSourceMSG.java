@@ -2,9 +2,9 @@ package ru.DanilovAF.util.ThreadMSG;
 
 /**
  * Created by aleksandr.danilov on 16.11.2017.
- * Поток "наследует" свойства SynThread и SourceMSG
+ * РџРѕС‚РѕРє "РЅР°СЃР»РµРґСѓРµС‚" СЃРІРѕР№СЃС‚РІР° SynThread Рё SourceMSG
  *
- * Не понимаю для чего я это сделал - оставлено для совсместимости.
+ * РќРµ РїРѕРЅРёРјР°СЋ РґР»СЏ С‡РµРіРѕ СЏ СЌС‚Рѕ СЃРґРµР»Р°Р» - РѕСЃС‚Р°РІР»РµРЅРѕ РґР»СЏ СЃРѕРІСЃРјРµСЃС‚РёРјРѕСЃС‚Рё.
  */
 public class SynThreadSourceMSG<Mes> extends SynThread
 {
