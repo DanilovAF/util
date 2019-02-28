@@ -26,8 +26,9 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 	String curDate;
 
     PatternLayoutEncoder encoder;
+	private String separate = "/";  // По умолчанию для NIX систем
 
-    public PatternLayoutEncoder getEncoder() {
+	public PatternLayoutEncoder getEncoder() {
       return encoder;
     }
 
@@ -47,6 +48,12 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 		{
 			if(wr == null)
 			{
+				// Определим систему, если это windows разделитель каталогов - свой
+				OsCheck.OSType os = OsCheck.getOperatingSystemType();
+				if(os.compareTo(OsCheck.OSType.Windows) == 0)
+				{
+					separate = "\\";
+				}
 				String fName = getFileName();
 				wr = new FileWriter(getFileName(), true);
 			}
@@ -79,10 +86,11 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 	 */
 	private String getFileName()
 	{
+//		System.out.println("getFileName !!!");
 		Date dateEnd = Calendar.getInstance().getTime();
 		SimpleDateFormat sd = new SimpleDateFormat(simpleDateFormat);
 		curDate = sd.format(dateEnd);
-		return(Directory + "\\" + Prefix + curDate + Suffix);
+		return(Directory + separate + Prefix + curDate + Suffix);
 	}
 
 	/**
@@ -119,6 +127,7 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 
 	public void setDirectory(String directory)
 	{
+//		System.out.println("setDirectory !!!");
 		if(directory.charAt(0) == '%')
 		{
 			directory = " " + directory;
@@ -139,7 +148,7 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 						sRet +=sP;
 					} else
 					{
-						sRet += "\\" + sP;
+						sRet += separate + sP;
 					}
 				}
 			} else
@@ -151,12 +160,13 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 						sRet += sBuf.trim();
 					} else
 					{
-						sRet += "\\" + sBuf.trim();
+						sRet += separate + sBuf.trim();
 					}
 				}
 			}
 			i++;
 		}
+
 		File f = new File(sRet);
 		if(f.isDirectory())
 		{
@@ -166,6 +176,7 @@ public class myLog4jAppender extends AppenderBase<ILoggingEvent>
 			f.mkdirs();
 			Directory = f.getAbsolutePath();
 		}
+//		System.out.println("setDirectory = " + Directory + "!!!!");
 	}
 
 	/**
