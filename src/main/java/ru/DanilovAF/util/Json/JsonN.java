@@ -496,7 +496,7 @@ public class JsonN
 					stakKey.add(0, sKey);		// Добавили ключ в стек
 					sbVal.delete(0, sbVal.length());    // Почистим буфер данных
 				}
-			} else if (ch == 'u' && chStat == '/')
+			} else if ((ch == 'u' || ch == 'r' || ch == 'n') && chStat == '/')
 			{	// Следом должно идти 4-х значное шестнадчатеричное
 				sbVal.append("\\").append(ch);
 				sbStack.delete(0, 1);    // Удалим из стека операцию, которую только что закрыли

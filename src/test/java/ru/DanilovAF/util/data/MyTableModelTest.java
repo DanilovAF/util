@@ -45,4 +45,23 @@ public class MyTableModelTest {
         MyTableModel tab = new MyTableModel(node, "result");
         System.out.println(tab.toOutTable(null));
     }
+
+    @Test
+    public void test_hideCollumn() throws Exception {
+        JsonN node = JsonN.inputFileUTF_0A(new File("D:\\DALOV\\JAVA\\util\\test.json"));
+
+        MyTableModel tab = new MyTableModel(node, "result");
+        tab.hideCollumn("start");
+        System.out.println(tab.toOutTable(null));
+
+    }
+
+    @Test
+    public void test_toOutLine() throws Exception {
+        JsonN node = JsonN.inputFileUTF_0A(new File("D:\\DALOV\\JAVA\\util\\test.json"));
+
+        MyTableModel tab = new MyTableModel(node, "result");
+        System.out.println(tab.toOutLine(null));
+    }
+
 }

@@ -308,6 +308,17 @@ public class ItemData2 implements Comparable<ItemData2>
 		}
 		return(iRet);
 	}
+	// Создает запись с указанным словаерем и заполняет ее атрибутами из строки - разделитель ^
+	public static ItemData2 newItemAM(DictData2 dict, String sIt, String sDelim)
+	{
+		ItemData2 iRet = new ItemData2(dict);
+		int i = 0;
+		for(String sField : sIt.split(sDelim))
+		{
+			iRet.set(i++, sField);
+		}
+		return(iRet);
+	}
 
 	public void setDict(DictData dd)
 	{

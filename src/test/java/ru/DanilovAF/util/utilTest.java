@@ -2,6 +2,9 @@ package ru.DanilovAF.util;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 
@@ -63,6 +66,93 @@ public class utilTest {
 
         sTest = "";
         System.out.println(util.count(sTest, "\n"));
+    }
+
+    @Test
+    public void test_getQueryifOperStatus() throws Exception {
+
+        ArrayList<String> sPorts = new ArrayList<String>();
+        sPorts.add("818265-Alc7302-1-08-10");
+        sPorts.add("8182347-Alc7302-2-05-29");
+        sPorts.add("818222-Alc7302-3-01-33");
+        sPorts.add("818241-Alc7302-2-03-40");
+        sPorts.add("818241-Alc73-02-1-07-13");
+        sPorts.add("818222-Alc7302-3-01-35");
+        sPorts.add("8182459-Alc7302FD-11-03-25");
+        sPorts.add("818220-Alc7302-1-07-24");
+        sPorts.add("81822968-Alc7302-1-08-40");
+        sPorts.add("81822561-Alc7302FD-11-13-10");
+        sPorts.add("8182669-Alc7302-1-04-35");
+
+        for(String sPort: sPorts) {
+            System.out.println(util.getQueryifOperStatus(sPort));
+        }
+    }
+
+    @Test
+    public void test_tildaSpace1() throws Exception {
+        String sParce = "п дшсп с тел \"\"";
+        sParce = util.tildaSpace(sParce, ' ', '~');
+        System.out.println(sParce);
+
+        sParce = "п дшсп с тел \"1 2\"";
+        sParce = util.tildaSpace(sParce, ' ', '~');
+        System.out.println(sParce);
+
+        sParce = "п дшсп с тел '\"1 2'";
+        sParce = util.tildaSpace(sParce, ' ', '~');
+        System.out.println(sParce);
+
+        sParce = "п дшсп с тел '\"1 2";
+        sParce = util.tildaSpace(sParce, ' ', '~');
+        System.out.println(sParce);
+
+        sParce = "п дшсп с name ' проба пера ' и с тел '\"1 2'";
+        sParce = util.tildaSpace(sParce, ' ', '~');
+        System.out.println(sParce);
+    }
+
+    @Test
+    public void test_replaceVars() throws Exception {
+        HashMap<String, String> hmVars = new HashMap<String, String>();
+        hmVars.put("tel", "8182650368");
+        hmVars.put("mac", "008190102030");
+        String sStr = "tel";
+        String sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "$tel$";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "$tel:4$";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "$tel:4,3$";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "tel=$tel:4,3$-$mac";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "tel=$tel:4,3$$mac";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "panas-$mac$.cfg";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "PHONE_NUMBER_1=\"Tel: $tel:2$\"";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
+        sStr = "<Profile_Rule_B ua=\"na\">tftp://192.168.100.10/525/spa-525-$mac.xml</Profile_Rule_B>";
+        sRet = util.replaceVars(sStr, null, hmVars);
+        System.out.println(sStr + " = " + sRet);
+
     }
 }
 

@@ -29,6 +29,17 @@ public class util
 		return(fRet);
 	}
 
+	public static String getSeparatorPath()
+	{
+		String separate = "/";  // По умолчанию для NIX систем
+		// Определим систему, если это windows разделитель каталогов - свой
+		OsCheck.OSType os = OsCheck.getOperatingSystemType();
+		if(os.compareTo(OsCheck.OSType.Windows) == 0)
+		{
+			separate = "\\";
+		}
+		return separate;
+	}
 	public static void addDllPath(String in_sPath) throws NoSuchFieldException, IllegalAccessException
 	{
 		Field field = null;
@@ -95,7 +106,8 @@ public class util
 	public static String getCurDir()
 	{
 		String sFile = new File(".").getAbsolutePath();
-		if(sFile.indexOf("\\.") == sFile.length()-2)
+		String sep = getSeparatorPath();
+		if(sFile.indexOf(sep + ".") == sFile.length()-2)
 		{
 			sFile = sFile.substring(0, sFile.length()-1);
 		}
@@ -103,7 +115,21 @@ public class util
 	}
 	public static String getDirToSetup()
 	{
-		File fPath = new File(System.getenv("APPDATA") + "\\pilots");
+		File fPath = new File(System.getenv("APPDATA") + getSeparatorPath() + "pilots");
+		if(!fPath.isDirectory())
+		{
+			// Надо создать лиректорию
+			fPath.mkdir();
+		}
+		return(fPath.getPath());
+	}
+	public static String getDirToSetup(String chieldAppData)
+	{
+		if(chieldAppData == null || chieldAppData.isEmpty())
+		{
+			chieldAppData = "3x15";
+		}
+		File fPath = new File(System.getenv("APPDATA") + getSeparatorPath() + chieldAppData);
 		if(!fPath.isDirectory())
 		{
 			// Надо создать лиректорию
@@ -290,9 +316,20 @@ public class util
 		replaceR(inStr, repCh, toRepCh);
 		return(inStr);
 	}
+	static public String replaceLR(String inStr, String repCh, String toRepCh)
+	{
+		inStr = replaceL(inStr, repCh, toRepCh);
+		inStr = replaceR(inStr, repCh, toRepCh);
+		return(inStr);
+	}
 	static public StringBuffer trimLR(StringBuffer inStr, String repCh)
 	{
 		replaceLR(inStr, repCh, "");
+		return(inStr);
+	}
+	static public String trimLR(String inStr, String repCh)
+	{
+		inStr = replaceLR(inStr, repCh, "");
 		return(inStr);
 	}
 	/**
@@ -897,6 +934,151 @@ public class util
 		}
 		return iCount;
 	}
+
+	public static String getQueryifOperStatus(String sport) throws UnsupportedEncodingException {
+		String sRet = "";
+		String [] dim = sport.split("-");
+
+		String aa = dim[dim.length-2];
+		String bb = dim[dim.length-1];
+
+		aa = Integer.toHexString((int) util.mcn(aa, '.') + 2);
+		bb = Integer.toHexString((int) util.mcn(bb, '.') - 1);
+		byte [] b = new byte[1];
+		String sBuf = "11" + util.alignString(aa, "0", 2) + "00" + util.alignString(bb, "0", 2);
+		StringBuffer sb = new StringBuffer();
+		for(int y = 0; y < dim.length - 2; y++)
+		{
+			sb.append("-").append(dim[y]);
+		}
+		sb.delete(0, 1);
+		long parsedResult = Long.parseLong(sBuf, 16);
+		sRet = sport + "\t; " + sb + "\t; " + parsedResult + "\t; http://moncase.atol.int/cgi-bin/prometheus.pl?query=ifOperStatus{billname=\"" + sb + "\",ifIndex=\"" + parsedResult + "\"}&pretty=1";
+		return sRet;
+	}
+
+	/**
+	 * Замена в кавычках указанного символа на указанный
+	 * Задача например заменить все пробелы в кавычках на какой-то символ, чтобы кавычки шли как один аргумент
+	 * Главное не забыть потом немаскироватьть значение в кавычках
+	 * @param inCmd
+	 * @param fromCh
+	 * @param toCh
+	 * @return
+	 */
+	static public String tildaSpace(String inCmd, char fromCh, char toCh) {
+		StringBuffer sbCmd = new StringBuffer(inCmd.length());
+		if(inCmd != null) {
+			String sQuotes = "'\""; // Все, что считаем кавычками
+			boolean bFlagQ = false; // Если внутри кавычки, то этот флаг в истину
+			char chEnd = 0;
+			for (int i = 0; i < inCmd.length(); i++) {
+				char ch = inCmd.charAt(i);
+				if(bFlagQ)
+				{
+					if(ch == fromCh)
+					{
+						sbCmd.append(toCh);
+					} else
+					{
+						sbCmd.append(ch);
+					}
+					if(ch == chEnd)
+					{
+						bFlagQ = false;
+						chEnd = 0;
+					}
+				} else
+				{   // Пока кавычка не выделена
+					int iPos = sQuotes.indexOf(ch);
+					if(iPos != -1)
+					{   // Нашли начало кавычки
+						bFlagQ = true;
+						chEnd = sQuotes.charAt(iPos);
+					}
+					sbCmd.append(ch);
+				}
+			}
+		}
+		return sbCmd.toString();
+	}
+
+	/**
+	 * Функция в строке меняет слова выделенные с двух сторон delim на значения из hmVars, если выделение соответствует
+	 * значению ключа из hmVars
+	 * при этом можно использовать выделение подстроки из переменной в виде:
+	 * $tel:2,3$
+	 *
+	 * @param inCmd
+	 * @param delim
+	 * @param hmVars
+	 * @return
+	 */
+	static public String replaceVars(String inCmd, String delim, HashMap<String, String> hmVars) {
+
+		if(inCmd == null)
+			inCmd = "";
+		if(delim == null || delim.isEmpty())
+			delim = "$";  // Разделитель переменных
+		StringBuffer sRet = new StringBuffer(inCmd.length());
+
+		int z = 1;
+		String sReg = delim;
+		// Замена $ на рег выражение
+		if(sReg.compareTo("$") == 0)
+		{
+			sReg = "\\$";
+		}
+		boolean bFlagAddDelim = true;
+		String []dimStr = inCmd.split(sReg, -1);
+		for(int i = 0; i < dimStr.length; i++)
+		{
+			String sPart = dimStr[i];
+			if(i != 0 && i != dimStr.length - 1)
+			{   // Это может быть значение переменной
+				// Выделим строку и подстроку
+				String sDeliv = util.field(sPart, ":", 2);
+				String sPos1 = util.field(sDeliv, ",", 1);
+				String sPos2 = util.field(sDeliv, ",", 2);
+				int iPos1 = (int) util.mcn(sPos1, ',');
+				int iPos2 = (int) util.mcn(sPos2, ',');
+				sPart = util.field(sPart, ":", 1);
+				// Поиск перемекнной в переменных
+				if(hmVars.containsKey(sPart))
+				{
+					bFlagAddDelim = false;
+					String sNew = hmVars.get(sPart);
+					if(!sDeliv.isEmpty())
+					{
+						if(sPos2.isEmpty())
+						{    // От pos до конца
+							sNew = sNew.substring(iPos1);
+						} else
+						{    // От pos до pos
+							sNew = sNew.substring(iPos1, iPos1 + iPos2);
+						}
+					}
+					sRet.append(sNew);
+				} else
+				{
+					if(bFlagAddDelim) {
+						sRet.append(delim).append(sPart);
+					} else {
+						sRet.append(sPart);
+						bFlagAddDelim = true;
+					}
+
+				}
+			} else
+			{
+				if(i == dimStr.length - 1 && bFlagAddDelim && i != 0)
+					sRet.append(delim);
+				sRet.append(sPart);
+			}
+		}
+		return sRet.toString();
+	}
+
 }
 
 

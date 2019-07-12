@@ -60,7 +60,52 @@ public class xNode extends ArrayList<xNode>
 	{
 		initC();
 	}
-//	public xNode(xNode in_This)
+
+	/**
+	 * Создает клонирование этого дерева
+	 * @param inCopy
+	 * @return
+	 */
+	static public xNode cloneFrom(xNode inCopy)
+	{
+		xNode ret = new xNode();
+
+		if(inCopy != null)
+		{
+			ret = addClone(inCopy);
+		} else
+		{
+			ret = null;
+		}
+		return ret;
+	}
+
+	/**
+	 * Рекурсивная функция для клонирования дерева - вызывайте cloneFrom
+	 * @param inCopy
+	 * @return
+	 */
+	private static xNode addClone(xNode inCopy) {
+		xNode ret = new xNode();
+		ret.setKey(inCopy.getKey());
+		ret.setVal(inCopy.getVal());
+		// Скопируем свойства
+		if(inCopy.getProp() != null) {
+			for (mProp.Twice it : inCopy.getProp()) {
+				String sKey = it.getSKey();
+				String sVal = it.getSVal();
+				ret.setProp(sKey, sVal);
+			}
+		}
+		for(xNode n: inCopy)
+		{
+			// Рекурсия
+			ret.add(addClone(n));
+		}
+		return ret;
+	}
+
+	//	public xNode(xNode in_This)
 //	{
 //		initC();
 //		m_parentNode = in_This;
@@ -306,20 +351,17 @@ public class xNode extends ArrayList<xNode>
 				int intPos = new Integer(s);
 				if(nodeBuf == null)
 					nodeBuf = this;
-				else
+				if(nodeBuf.size() >= intPos - 1)	// Проверка на попадание в кол-во элементов
+					nodeBuf = nodeBuf.get(intPos - 1);	// возвращаем узел по указанному номеру
+				else if(in_bCreate)
+				{	// Надо создать узлы
+					//xNode nodeBuf2 = new xNode(nodeBuf);
+					xNode nodeBuf2 = new xNode();
+					nodeBuf.add(nodeBuf2);
+					nodeBuf = nodeBuf2;
+				} else
 				{
-					if(nodeBuf.size() >= intPos - 1)	// Проверка на попадание в кол-во элементов
-						nodeBuf = nodeBuf.get(intPos - 1);	// возвращаем узел по указанному номеру
-					else if(in_bCreate)
-					{	// Надо создать узлы
-						//xNode nodeBuf2 = new xNode(nodeBuf);
-						xNode nodeBuf2 = new xNode();
-						nodeBuf.add(nodeBuf2);
-						nodeBuf = nodeBuf2;
-					} else
-					{
-						nodeBuf = null; break;	// выходим с нулевым узлом
-					}
+					nodeBuf = null; break;	// выходим с нулевым узлом
 				}
 			} else
 			{	// Надо полагать, что если это не число - то это название тега (Если есть повторяющиеся теги или не
@@ -732,6 +774,35 @@ public class xNode extends ArrayList<xNode>
 	public String toString()
 	{
 		return (getKey() + " - " + getVal());
+	}
+
+	/**
+	 * Доходим до максимальной глубины первых узлов и возвращаем самый глубокий узел
+	 * @return
+	 */
+	public xNode getNodeMaxLvl()
+	{
+		xNode curNode = this;
+		ArrayList<xNode> alNodes = new ArrayList<xNode>();
+		alNodes.add(this);
+
+		while(alNodes != null && !alNodes.isEmpty())
+		{
+			ArrayList<xNode> alNodesNew = new ArrayList<xNode>();
+			for(xNode n: alNodes)
+			{
+				alNodesNew.addAll(n);
+			}
+			if(alNodesNew.isEmpty())
+			{
+				break;
+			} else
+			{
+				alNodes = alNodesNew;
+			}
+		}
+		curNode = alNodes.get(0);
+		return curNode;
 	}
 }
 

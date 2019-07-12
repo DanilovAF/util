@@ -9,11 +9,11 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.SearchResult;
 import javax.swing.table.AbstractTableModel;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sun.misc.VM;
 
 import static ru.DanilovAF.util.data.ItemData2.VM;
 
@@ -22,6 +22,9 @@ import static ru.DanilovAF.util.data.ItemData2.VM;
  * получаем RecordSet и вливаем его в таблицу в памяти, которую можно сразу запихать в таблицу Swing-а
  */
 public class MyTableModel extends AbstractTableModel {
+
+    private static final Logger log = LoggerFactory.getLogger(MyTableModel.class);
+
     private String tableName = "";
     protected ArrayList<ItemData2> data = new ArrayList<ItemData2>();   // Сами данные
     protected DictData2 dict = new DictData2();
@@ -33,6 +36,40 @@ public class MyTableModel extends AbstractTableModel {
     public MyTableModel() {
     }
 
+    public StringBuffer toOutLine(StringBuffer sb) {
+        if (sb == null)
+            sb = new StringBuffer();
+        // Пройдем по всем столбикам - получим размер строк
+        // Сравним с длинной заголовка поля, если оно длиннее, то исправим
+        int iLenFieldName = 0;
+        for(String sName: dict.getDict().keySet())
+        {
+            if(sName.length() > iLenFieldName)
+                iLenFieldName = sName.length();
+        }
+
+        // Добавми данные, проходим по максимальному кол-ву значений  (сначала получим максимальное кол-во значений в этой записи)
+        for (ItemData2 item : data) {
+            int iRow = 0;
+            for (String sVal : item.item) {
+                // Выводим имя атрибута
+                sb.append("\n").append(util.alignString(dict.getColumnName(iRow), " ", iLenFieldName));
+                int iVm = 1;
+                for(String sVm: sVal.split(VM, -1)) {
+                    if(iVm == 1) {
+                        sb.append(" : ").append(sVm);
+                    } else {
+                        sb.append("\n").append(util.alignString("", " ", iLenFieldName)).append("   ").append(sVm);
+                    }
+                    iVm++;
+                }
+                iRow++;
+            }
+            sb.append("\n-------------------");
+        }
+        return sb;
+
+    }
     /**
      * Вывести в буфер таблицу в таблице по размеру данных
      *
@@ -70,11 +107,15 @@ public class MyTableModel extends AbstractTableModel {
         int y = 0;
         for (Integer iVal : alLen) {
             String sName = dict.getColumnName(y);
-            sb.append(" ");
-            if (sName.length() > alLen.get(y)) {
-                sb.append(sName.substring(0, alLen.get(y)));
-            } else {
-                sb.append(util.alignStringLeft(sName, " ", alLen.get(y)));
+            if(sName == null)
+                sName = "";
+            if(!hsHiddenColumns.contains(y)) {
+                sb.append(" ");
+                if (sName.length() > alLen.get(y)) {
+                    sb.append(sName.substring(0, alLen.get(y)));
+                } else {
+                    sb.append(util.alignStringLeft(sName, " ", alLen.get(y)));
+                }
             }
             y++;
         }
@@ -82,39 +123,42 @@ public class MyTableModel extends AbstractTableModel {
         sb.append("\n");
         y = 0;
         for (Integer iVal : alLen) {
-            sb.append(" ").append(util.alignStringLeft("-", "-", alLen.get(y)));
+            String sName = dict.getColumnName(y);
+            if(!hsHiddenColumns.contains(y)) {
+                sb.append(" ").append(util.alignStringLeft("-", "-", alLen.get(y)));
+            }
             y++;
         }
         // Добавми данные, проходим по максимальному кол-ву значений  (сначала получим максимальное кол-во значений в этой записи)
         for (ItemData2 item : data) {
-            sb.append("\n");
-            int iMaxVM = 0;        // Максимальное кол-во значений во всех атрибутах записи
-            for (String sVal : item.item) {
-                int iBuf = util.count(sVal, VM);
-                if (iBuf > iMaxVM)
-                    iMaxVM = iBuf;
-            }
-            iMaxVM++;    // Кол-во VM больше на 1-цу
-            for (int i = 1; i <= iMaxVM; i++) {
-                y = 0;
+
+                sb.append("\n");
+                int iMaxVM = 0;        // Максимальное кол-во значений во всех атрибутах записи
                 for (String sVal : item.item) {
-                    sVal = util.field(sVal, ItemData2.VM, i);
-                    if (sVal != null) {
-                        sb.append(" ").append(util.alignStringLeft(sVal, " ", alLen.get(y)));
-                    } else {
-                        sb.append(" ").append(util.alignStringLeft(" ", " ", alLen.get(y)));
-                    }
-                    y++;
+                    int iBuf = util.count(sVal, VM);
+                    if (iBuf > iMaxVM)
+                        iMaxVM = iBuf;
                 }
+                iMaxVM++;    // Кол-во VM больше на 1-цу
+                for (int i = 1; i <= iMaxVM; i++) {
+                    y = 0;
+                    for (String sVal : item.item) {
+                        if(!hsHiddenColumns.contains(y)) {
+                            sVal = util.field(sVal, ItemData2.VM, i);
+                            if (sVal != null) {
+                                sb.append(" ").append(util.alignStringLeft(sVal, " ", alLen.get(y)));
+                            } else {
+                                sb.append(" ").append(util.alignStringLeft(" ", " ", alLen.get(y)));
+                            }
+                        }
+                        y++;
+                    }
 //                if(i > 1)
                     sb.append("\n");
+                }
+                sb.deleteCharAt(sb.length() - 1);
             }
-            sb.deleteCharAt(sb.length() - 1);
             int u = 0;
-        }
-
-        int g = 0;
-
         return sb;
     }
 
@@ -131,18 +175,41 @@ public class MyTableModel extends AbstractTableModel {
     public MyTableModel(JsonN node, String sPath) {
         // Необходимо записхать вывод в MyTableModel
         try {
-            for (JsonN n : node.get(sPath).getDim()) {
-                ItemData2 item = new ItemData2(getDict());
-                HashMap<String, JsonN> hmVals = n.getMap();
-                for (String sKey : hmVals.keySet()) {
-                    item.addAlways(sKey, hmVals.get(sKey).getVal());
+            if(node.get(sPath).getDim() != null) {
+                for (JsonN n : node.get(sPath).getDim()) {
+                    ItemData2 item = new ItemData2(getDict());
+                    HashMap<String, JsonN> hmVals = n.getMap();
+                    for (String sKey : hmVals.keySet()) {
+                        sKey = convertKeyIN(sKey);
+                        String sVal = hmVals.get(sKey).getVal();
+                        sVal = convertValIN(sVal);
+                        item.addAlways(sKey, sVal);
+                    }
+                    addItem(item);
                 }
-                addItem(item);
             }
         } catch (MyException e) {
             e.printStackTrace();
         }
 
+    }
+
+    /**
+     * Метод запускается перед вставкой данных в запись в конструкторе от JsonN
+     * @param sVal
+     * @return
+     */
+    protected String convertValIN(String sVal) {
+        return sVal;
+    }
+
+    /**
+     * Метод для возможности конвертирования строки перед вставкой в таблицу в конструкторе от JsonN
+     * @param sKey
+     * @return
+     */
+    protected String convertKeyIN(String sKey) {
+        return sKey;
     }
 
     /**
@@ -175,12 +242,24 @@ public class MyTableModel extends AbstractTableModel {
             e.printStackTrace();
         }
     }
+    public static MyTableModel executeSql(Connection connection, String sql) throws SQLException {
+        MyTableModel mtm = null;
+        Statement st = null;
+        ResultSet rSt = null;
+        if(log.isTraceEnabled()) { log.trace("SelectTo => " +sql); }
+        st = connection.createStatement();
+        rSt = st.executeQuery(sql);
+        mtm = new MyTableModel(rSt);
+        st.close();
+        rSt.close();
+        return mtm;
+    }
 
-    /**
-     * На базе рекорд сета построить таблицу
-     *
-     * @param ps
-     */
+        /**
+		 * На базе рекорд сета построить таблицу
+		 *
+		 * @param ps
+		 */
     public MyTableModel(ResultSet ps) {
         try {
             ResultSetMetaData rsm = ps.getMetaData();
@@ -291,6 +370,17 @@ public class MyTableModel extends AbstractTableModel {
                 }
                 int y = 0;
             }
+        }
+    }
+
+    public void hideCollumn(String sColName)
+    {
+        if(getDict().isContainField(sColName)) {
+            int ind = getDict().getColumnNum(sColName);
+            if(alHiddenColumns == null)
+                alHiddenColumns = new ArrayList<Integer>();
+            alHiddenColumns.add(ind);
+            hsHiddenColumns.add(ind);
         }
     }
 
