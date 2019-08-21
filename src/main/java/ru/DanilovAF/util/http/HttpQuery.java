@@ -55,6 +55,11 @@ public class HttpQuery extends SynThread
 		this.pass = pass;
 	}
 
+	public HttpQuery(String sHost, String sUrl) {
+		this.sUrl = sUrl;
+		this.sHost = sHost;
+	}
+
 	public String getsUrl() {
 		return sUrl;
 	}
@@ -69,11 +74,11 @@ public class HttpQuery extends SynThread
 //		HttpZabbix2 zbx = new HttpZabbix2(this, query, zbListner);
 		addListner(hListner);
 		sQ = sQuery;
-		startThisThread();
+		Thread th = startThisThread();
 		try {
 			waitStartThread();
 			waitStopThread();
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			log.error("Ошибка!!! \n" + util.stackTrace(e));
 //			e.printStackTrace();
 		}
@@ -100,11 +105,12 @@ public class HttpQuery extends SynThread
 
 	@Override
 	public void run() {
+		if (log.isInfoEnabled()) { log.info("Старт потока сокета " + this); }
+		doBeforeStart();
 		setStart();
-		while(isNeedWork())	// Пока надо работать
-		{
-			if (log.isInfoEnabled()) { log.info("Старт потока сокета " + this); }
 
+		//		while(isNeedWork())	// Пока надо работать
+		{
 			char[] buffer= new char[1550];
 			int chars_read; // Кол-во прочитанных байт
 			String as = "";	// Буфер чтения за один раз
@@ -121,7 +127,6 @@ public class HttpQuery extends SynThread
 					// Открыть сокет
 					log.trace("Создаем сокет " + this);
 					oSocket = getSocket();
-//					oSocket = new Socket();
 
 					from_server = new InputStreamReader(oSocket.getInputStream());
 					to_server = new PrintWriter(oSocket.getOutputStream());
@@ -189,12 +194,10 @@ public class HttpQuery extends SynThread
 							log.debug("Таймаут в сокете...");
 						}
 					}
-					setStop();    // Ну не работаем - т.к. нет соединения
 					myCloseSocet();
 					log.info("Корректная остановка потока работы с Сокетом!");
-				} catch (IOException e)
+				} catch (Exception e)
 				{   // Инициализация сокета заново
-					setStop();    // Сказали что астериск не готов
 					log.error(util.stackTrace(e));
 					myCloseSocet();
 					// Уведомим всех, что соединение сломалось... Код ошибки 2. Смотри описание в MyAstExeption
@@ -206,6 +209,7 @@ public class HttpQuery extends SynThread
 			if (log.isInfoEnabled())
 			{
 				log.info("Зарешение работы с Сокетом!"); }
+			setStop();    // Сказали, что остановились
 		}
 
 	}
@@ -256,6 +260,8 @@ public class HttpQuery extends SynThread
 			to_server.close();
 		}
 		oSocket = null;
+		from_server = null;
+		to_server = null;
 	}
 
 	public boolean setHederOpt(String sKey, String sVal) {

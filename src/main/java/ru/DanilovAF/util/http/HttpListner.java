@@ -35,8 +35,12 @@ public class HttpListner extends MsgStack<StringBuffer>
 	public StringBuffer getAnswer()
 	{
 		StringBuffer nRet = new StringBuffer();
-		int iPosB = sb.indexOf("\r\n\r\n");
-		nRet.append(sb.substring(iPosB + "\r\n\r\n".length()));
+		if(sb != null && sb.length() > 0) {
+			int iPosB = sb.indexOf("\r\n\r\n");
+			if(iPosB != -1) {
+				nRet.append(sb.substring(iPosB + "\r\n\r\n".length()));
+			}
+		}
 		return(nRet);
 	}
 }
