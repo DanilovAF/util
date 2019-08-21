@@ -45,7 +45,7 @@ public class SynThread implements Runnable
 	private static final Logger log = LoggerFactory.getLogger(SynThread.class);
 
 	protected volatile Boolean needWork = new Boolean(false);    // Надо работать, если не надо работать - поток должен останавливаться
-	private volatile Boolean start = new Boolean(false);        // Запущен я или не запущен
+	private volatile Integer start = new Integer(0);        // Запущен я или не запущен
 	private static long timeSleep = 500;        // Время ожидания выхода из wait на новый цикл ожидания
 	protected Thread thisThread = null;    // Текущий поток здесь
 
@@ -56,13 +56,13 @@ public class SynThread implements Runnable
 	 */
 	public boolean isNeedWork()
 	{
-//		boolean bRet = false;
-//		synchronized(needWork)
-//		{
-//			bRet = needWork;
-//		}
-//		return bRet;
-		return needWork.booleanValue();
+		boolean bRet = false;
+		synchronized(needWork)
+		{
+			bRet = needWork;
+		}
+		return bRet;
+//		return needWork.booleanValue();
 	}
 
 	/**
@@ -81,11 +81,6 @@ public class SynThread implements Runnable
 		setNeedWork(false);
 	}
 
-	public void stop()
-	{
-		thisThread.stop();
-	}
-
 	/**
 	 * Говорит потоку надо или не надо работать
 	 *
@@ -98,27 +93,46 @@ public class SynThread implements Runnable
 			this.needWork = needWork;
 		}
 	}
-	/**
-	 * Если в приложении надо сделать паузу на timeSleep и при этом контролировать недо ли работать, то надо
-	 * вызвать этму функцию
-	 * @return истина если надо продолжать работать
-	 * @throws InterruptedException
-	 */
-	public boolean waitNeedWork() throws InterruptedException
-	{
-		synchronized (needWork)
-		{
-			needWork.wait(timeSleep);
-		}
-		return(isNeedWork());
-	}
+//	/**
+//	 * Если в приложении надо сделать паузу на timeSleep и при этом контролировать недо ли работать, то надо
+//	 * вызвать этму функцию
+//	 * @return истина если надо продолжать работать
+//	 * @throws InterruptedException
+//	 */
+//	public boolean waitNeedWork() throws InterruptedException
+//	{
+//		synchronized (needWork)
+//		{
+//			needWork.wait(timeSleep);
+//		}
+//		return(isNeedWork());
+//	}
 	/**
 	 * Отвечает на вопрос стартанул поток или нет
 	 * @return
 	 */
 	public boolean isStart()
 	{
-		return start.booleanValue();
+		boolean bRet = false;
+		synchronized(start)
+		{
+			bRet = start == 2;
+		}
+		return bRet;
+	}
+
+	/**
+	 * Получить значение флага запуска, если 0, то уже не запускаемся
+	 * @return
+	 */
+	public int getStart()
+	{
+		int iRet = 0;
+		synchronized(start)
+		{
+			iRet = start;
+		}
+		return iRet;
 	}
 	/**
 	 * Говорит всем, что я стартанул, вызывать когда все запущено и поток готов к выполнению задачи
@@ -126,7 +140,8 @@ public class SynThread implements Runnable
 	 */
 	public void setStart()
 	{
-		setStart(true);
+		log.debug("Set Start Thread.");
+		setStart(2);
 	}
 	/**
 	 * Говорит всем, что я остановился
@@ -134,13 +149,14 @@ public class SynThread implements Runnable
 	 */
 	public void setStop()
 	{
-		setStart(false);
+		log.debug("Set STOP Thread.");
+		setStart(0);
 	}
 	/**
 	 * Переводит стстус потока в запущен/не запущен
 	 * @param inBStart
 	 */
-	private void setStart(boolean inBStart)
+	private void setStart(int inBStart)
 	{
 		synchronized(start)
 		{
@@ -175,8 +191,12 @@ public class SynThread implements Runnable
 			} catch(InterruptedException e)
 			{
 				log.error(util.stackTrace(e));
-				throw e;	// Подбросим выше - пусть разбирается использующий класс
+//				throw e;	// Подбросим выше - пусть разбирается использующий класс
 //				break;
+			} catch (Exception e)
+			{
+				log.error(util.stackTrace(e));
+				throw e;	// Подбросим выше - пусть разбирается использующий класс
 			}
 		}
 	}
@@ -188,7 +208,7 @@ public class SynThread implements Runnable
 	{
 		while(isNeedWork())	// Пока надо работать
 		{
-			if(!isStart())	// Пока не стартанули
+			if(getStart() == 1)	// Пока не стартанули
 			{
 				try
 				{
@@ -198,6 +218,11 @@ public class SynThread implements Runnable
 						start.wait(timeSleep);
 					}
 				} catch (InterruptedException e)
+				{
+					log.error(util.stackTrace(e));
+//					throw e;	// Подбросим выше - пусть разбирается использующий класс
+//					break;
+				} catch (Exception e)
 				{
 					log.error(util.stackTrace(e));
 					throw e;	// Подбросим выше - пусть разбирается использующий класс
@@ -249,6 +274,7 @@ public class SynThread implements Runnable
 	{
 		// Запуск выдачи указанного лога в отдельном потоке
 		letsWork();	// Давай поработаем
+		setStart(1);    // Начало запуска - если 1 - то пытаемся запуститься, если 2 - то в работе
 		thisThread = new Thread(this);
 		thisThread.start();
 		return (thisThread);
