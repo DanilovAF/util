@@ -3,6 +3,10 @@ package ru.DanilovAF.util.data;
 import org.junit.Test;
 import sun.misc.VM;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import static org.junit.Assert.*;
 
 /**
@@ -62,6 +66,24 @@ public class ItemData2Test {
 
         item.addAlways("age", "100");
         System.out.println(item);
+    }
+
+    @Test
+    public void test_setCurItem() throws Exception {
+        Connection conn = GetConnection.getConnectionOra("BILLING.af.atol.int", "BILLING", "dialer", "dialer");
+        Statement st = conn.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM job");
+        DictData2 dd = new DictData2(rs);
+
+        ItemData2 it = new ItemData2(dd);
+        System.out.println(it.getDict().toString());
+
+        while (rs.next()) {
+            it.setCurItem(rs);
+            System.out.println(it);
+        }
+
+
     }
 }
 
