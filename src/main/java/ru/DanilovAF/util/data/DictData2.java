@@ -2,6 +2,9 @@ package ru.DanilovAF.util.data;
 
 import ru.DanilovAF.util.util;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 /**
@@ -41,6 +44,36 @@ public class DictData2  implements DictData
 	public boolean sortLeft = false; // Сортировать как числа
 	public int iCountFild = 0;  // Кол-во полей - увеличивается при добавлении очередного поля
 	private String tableName;
+
+	public DictData2() {
+	}
+
+	/**
+	 * Получить словарь по выборке
+	 * @param ps
+	 * @throws SQLException
+	 */
+	public DictData2(ResultSet ps) throws SQLException {
+		ResultSetMetaData rsm = ps.getMetaData();
+
+		int iCount = rsm.getColumnCount();
+		for (int i = 1; i <= iCount; i++) {
+			addField(rsm.getColumnName(i));
+			if(i == 1)
+				setTableName(rsm.getTableName(i));
+		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer sp = new StringBuffer();
+		for(int i = 1; i <= getColumnCount(); i++)
+		{
+			sp.append(getColumnName(i)).append("^");
+		}
+		sp.delete(sp.length() - 1, sp.length());
+		return sp.toString();
+	}
 
 	public void setSortLeft(boolean sortLeft)
 	{

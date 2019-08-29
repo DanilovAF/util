@@ -208,6 +208,30 @@ public class ItemData2 implements Comparable<ItemData2>
 		return sRet;
 	}
 
+	/**
+	 * Получение очередной записи в себя
+	 * @param rs
+	 * @return
+	 * @throws SQLException
+	 */
+	public ItemData2 setCurItem(ResultSet rs) throws SQLException {
+		String sBuf = "";
+		clearMe();
+		for(int i = 1; i <= getColumnCount(); i++)
+		{
+			sBuf = rs.getString(i);
+			set(i - 1, sBuf);
+		}
+		return this;
+	}
+
+	/**
+	 * Очистить все данные
+	 */
+	private void clearMe() {
+		item.clear();
+	}
+
 	public ItemData2 set(int in_iNumFiled, String in_sVal)
 	{
 		boolean bRte = true;
