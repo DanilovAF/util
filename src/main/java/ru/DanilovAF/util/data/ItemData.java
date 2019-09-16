@@ -3,13 +3,9 @@ package ru.DanilovAF.util.data;
 import ru.DanilovAF.util.util;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,23 +14,23 @@ import java.util.HashSet;
  * Time: 15:01
  * Описание одной записи
  */
-public class ItemData2 implements Comparable<ItemData2>
+public class ItemData implements Comparable<ItemData>
 {
 //	public static final String VM = "\u00fd";
 	public static final String VM = "\n";
 	public ArrayList<String> item = new ArrayList<String>();
 	protected DictData dict;
 
-	public ItemData2()
+	public ItemData()
 	{
 	}
 
-	public ItemData2(DictData dict)
+	public ItemData(DictData dict)
 	{
 		this.dict = dict;
 	}
 
-	public ItemData2(ItemData2 in_Item)
+	public ItemData(ItemData in_Item)
 	{
 		if(in_Item != null)
 		{
@@ -62,7 +58,7 @@ public class ItemData2 implements Comparable<ItemData2>
 	}
 
 	@Override
-	public int compareTo(ItemData2 o)
+	public int compareTo(ItemData o)
 	{
 		int iRet = -1;
 		if(dict.isSortLeft())
@@ -88,7 +84,7 @@ public class ItemData2 implements Comparable<ItemData2>
 	 * @param in_item
 	 * @return
 	 */
-	public boolean getChangeAM(ItemData2 in_item, ArrayList<String> alUpdateAm)
+	public boolean getChangeAM(ItemData in_item, ArrayList<String> alUpdateAm)
 	{	// Если какие-то поля изменились по сравн со старой записью - обновить !!!!!
 		boolean bRet = false;
 		if(alUpdateAm == null)
@@ -211,10 +207,19 @@ public class ItemData2 implements Comparable<ItemData2>
 	/**
 	 * Получение очередной записи в себя
 	 * @param rs
+	 *
+	 * Пример кода для использования этой финкции
+	 *
+	 *         DictData dd = new DictData(rs);
+	 *         ItemData it = new ItemData(dd);
+	 *         while (rs.next()) {
+	 *         	 it.setCurItem(rs);
+	 *         }
+	 *
 	 * @return
 	 * @throws SQLException
 	 */
-	public ItemData2 setCurItem(ResultSet rs) throws SQLException {
+	public ItemData setCurItem(ResultSet rs) throws SQLException {
 		String sBuf = "";
 		clearMe();
 		for(int i = 1; i <= getColumnCount(); i++)
@@ -232,7 +237,7 @@ public class ItemData2 implements Comparable<ItemData2>
 		item.clear();
 	}
 
-	public ItemData2 set(int in_iNumFiled, String in_sVal)
+	public ItemData set(int in_iNumFiled, String in_sVal)
 	{
 		boolean bRte = true;
 		// Запрос по номеру
@@ -246,12 +251,12 @@ public class ItemData2 implements Comparable<ItemData2>
 		item.set(in_iNumFiled, in_sVal);
 		return this;
 	}
-	public ItemData2 add(int in_iNumFiled, String in_sVal)
+	public ItemData add(int in_iNumFiled, String in_sVal)
 	{
 		set(in_iNumFiled, in_sVal);
 		return this;
 	}
-	public ItemData2 add(String in_sKey, String in_sVal)
+	public ItemData add(String in_sKey, String in_sVal)
 	{
 		set(in_sKey, in_sVal);
 		return this;
@@ -263,9 +268,11 @@ public class ItemData2 implements Comparable<ItemData2>
 	 * @param in_sVal
 	 * @return
 	 */
-	public ItemData2 addAlways(String in_sKey, String in_sVal)
+	public ItemData addAlways(String in_sKey, String in_sVal)
 	{
 		if(in_sKey != null && !in_sKey.isEmpty()) {
+			if(dict == null)
+				dict = new DictData();
 			if (!dict.getDict().containsKey(in_sKey)) {
 				dict.addField(in_sKey);
 			}
@@ -274,7 +281,7 @@ public class ItemData2 implements Comparable<ItemData2>
 		return this;
 	}
 
-	public ItemData2 addVm(int in_iNumFiled, String in_sVal)
+	public ItemData addVm(int in_iNumFiled, String in_sVal)
 	{
 		if(get(in_iNumFiled) != null)
 		{
@@ -283,7 +290,7 @@ public class ItemData2 implements Comparable<ItemData2>
 		set(in_iNumFiled, in_sVal);
 		return this;
 	}
-	public ItemData2 addVm(String in_sKey, String in_sVal)
+	public ItemData addVm(String in_sKey, String in_sVal)
 	{
 		if(get(in_sKey) != null)
 		{
@@ -293,7 +300,7 @@ public class ItemData2 implements Comparable<ItemData2>
 		return this;
 	}
 
-	public ItemData2 set(String in_sKey, String in_sVal)
+	public ItemData set(String in_sKey, String in_sVal)
 	{
 		boolean bRte = true;
 		if(util.mcnS(in_sKey, '.').compareTo(in_sKey) == 0)
@@ -322,9 +329,9 @@ public class ItemData2 implements Comparable<ItemData2>
 	}
 
 	// Создает запись с указанным словаерем и заполняет ее атрибутами из строки - разделитель ^
-	public static ItemData2 newItem(DictData2 dict, String sIt)
+	public static ItemData newItem(DictData dict, String sIt)
 	{
-		ItemData2 iRet = new ItemData2(dict);
+		ItemData iRet = new ItemData(dict);
 		int i = 0;
 		for(String sField : sIt.split("^"))
 		{
@@ -333,9 +340,9 @@ public class ItemData2 implements Comparable<ItemData2>
 		return(iRet);
 	}
 	// Создает запись с указанным словаерем и заполняет ее атрибутами из строки - разделитель ^
-	public static ItemData2 newItemAM(DictData2 dict, String sIt, String sDelim)
+	public static ItemData newItemAM(DictData dict, String sIt, String sDelim)
 	{
-		ItemData2 iRet = new ItemData2(dict);
+		ItemData iRet = new ItemData(dict);
 		int i = 0;
 		for(String sField : sIt.split(sDelim))
 		{

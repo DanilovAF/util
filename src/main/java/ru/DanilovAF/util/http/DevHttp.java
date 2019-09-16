@@ -24,7 +24,7 @@ public class DevHttp {
     {
         String sUrl = "";
         sUrl = in_sCmd;
-        if(log.isTraceEnabled()) { log.trace("Запрос :" + sUrl); }
+        log.info("Запрос :" + sUrl);
         URL url = new URL(sUrl);
 
         BufferedReader inWeb = null;

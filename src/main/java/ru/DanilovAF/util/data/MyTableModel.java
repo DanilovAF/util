@@ -13,9 +13,10 @@ import java.sql.*;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.VM;
 
-import static ru.DanilovAF.util.data.ItemData2.VM;
+import static ru.DanilovAF.util.Json.JsonN.TYPE_DIM;
+import static ru.DanilovAF.util.Json.JsonN.TYPE_OBJECT;
+import static ru.DanilovAF.util.data.ItemData.VM;
 
 /**
  * Класс для работы с селектами из БД
@@ -26,8 +27,8 @@ public class MyTableModel extends AbstractTableModel {
     private static final Logger log = LoggerFactory.getLogger(MyTableModel.class);
 
     private String tableName = "";
-    protected ArrayList<ItemData2> data = new ArrayList<ItemData2>();   // Сами данные
-    protected DictData2 dict = new DictData2();
+    protected ArrayList<ItemData> data = new ArrayList<ItemData>();   // Сами данные
+    protected DictData dict = new DictData();
     protected ArrayList<String> alColumnNames = new ArrayList<String>();
     ArrayList<Integer> alHiddenColumns = null;        // Скрытык колонки
     HashSet<Integer> hsHiddenColumns = new HashSet<Integer>();        // Скрытык колонки в индексе
@@ -49,7 +50,7 @@ public class MyTableModel extends AbstractTableModel {
         }
 
         // Добавми данные, проходим по максимальному кол-ву значений  (сначала получим максимальное кол-во значений в этой записи)
-        for (ItemData2 item : data) {
+        for (ItemData item : data) {
             int iRow = 0;
             for (String sVal : item.item) {
                 // Выводим имя атрибута
@@ -81,7 +82,7 @@ public class MyTableModel extends AbstractTableModel {
             sb = new StringBuffer();
         // Пройдем по всем столбикам - получим размер строк
         ArrayList<Integer> alLen = new ArrayList<Integer>();
-        for (ItemData2 item : data) {
+        for (ItemData item : data) {
             for (int i = 0; i < item.size(); i++) {
                 String sAm = item.get(i);
                 if (alLen.size() < i + 1)
@@ -130,7 +131,7 @@ public class MyTableModel extends AbstractTableModel {
             y++;
         }
         // Добавми данные, проходим по максимальному кол-ву значений  (сначала получим максимальное кол-во значений в этой записи)
-        for (ItemData2 item : data) {
+        for (ItemData item : data) {
 
                 sb.append("\n");
                 int iMaxVM = 0;        // Максимальное кол-во значений во всех атрибутах записи
@@ -144,7 +145,7 @@ public class MyTableModel extends AbstractTableModel {
                     y = 0;
                     for (String sVal : item.item) {
                         if(!hsHiddenColumns.contains(y)) {
-                            sVal = util.field(sVal, ItemData2.VM, i);
+                            sVal = util.field(sVal, ItemData.VM, i);
                             if (sVal != null) {
                                 sb.append(" ").append(util.alignStringLeft(sVal, " ", alLen.get(y)));
                             } else {
@@ -162,7 +163,7 @@ public class MyTableModel extends AbstractTableModel {
         return sb;
     }
 
-    public MyTableModel(DictData2 dict) {
+    public MyTableModel(DictData dict) {
         this.dict = dict;
     }
 
@@ -175,9 +176,10 @@ public class MyTableModel extends AbstractTableModel {
     public MyTableModel(JsonN node, String sPath) {
         // Необходимо записхать вывод в MyTableModel
         try {
-            if(node.get(sPath).getDim() != null) {
+            if(node.get(sPath).getValType() == TYPE_DIM) {
                 for (JsonN n : node.get(sPath).getDim()) {
-                    ItemData2 item = new ItemData2(getDict());
+//                    ItemData item = new ItemData(getDict());
+                    ItemData item = new ItemData(getDict());
                     HashMap<String, JsonN> hmVals = n.getMap();
                     for (String sKey : hmVals.keySet()) {
                         sKey = convertKeyIN(sKey);
@@ -187,6 +189,18 @@ public class MyTableModel extends AbstractTableModel {
                     }
                     addItem(item);
                 }
+            } else if(node.get(sPath).getValType() == TYPE_OBJECT)
+            {   // Это объект
+                JsonN n = node.get(sPath);
+                ItemData item = new ItemData(getDict());
+                HashMap<String, JsonN> hmVals = n.getMap();
+                for (String sKey : hmVals.keySet()) {
+                    sKey = convertKeyIN(sKey);
+                    String sVal = hmVals.get(sKey).getVal();
+                    sVal = convertValIN(sVal);
+                    item.addAlways(sKey, sVal);
+                }
+                addItem(item);
             }
         } catch (MyException e) {
             e.printStackTrace();
@@ -229,7 +243,7 @@ public class MyTableModel extends AbstractTableModel {
             while (rs.next()) {
                 int i = 1;
                 String sBuf = "";
-                ItemData2 item = new ItemData2(dict);
+                ItemData item = new ItemData(dict);
                 for (String sCol : alColumnNames) {
                     sBuf = rs.getString(i);
                     item.set(i - 1, sBuf);
@@ -272,7 +286,7 @@ public class MyTableModel extends AbstractTableModel {
             while (rs.next()) {
                 int i = 1;
                 String sBuf = "";
-                ItemData2 item = new ItemData2(dict);
+                ItemData item = new ItemData(dict);
                 for (String sCol : alColumnNames) {
                     sBuf = rs.getString(i);
                     item.set(i - 1, sBuf);
@@ -300,7 +314,7 @@ public class MyTableModel extends AbstractTableModel {
         try {
             while (en.hasMore()) {
                 SearchResult sr = en.nextElement();
-                ItemData2 item = new ItemData2(dict);
+                ItemData item = new ItemData(dict);
                 for (String sD : sFields.split(",")) {
                     StringBuffer sb = new StringBuffer();
 //					BrowseLDAP.toOut(sr.getAttributes().get(sD), sb);
@@ -324,7 +338,7 @@ public class MyTableModel extends AbstractTableModel {
         // Если стоит флаг удаления пустых столбцов - удалим их
         if (true) {
             if (!data.isEmpty()) {
-                for (ItemData2 it : data) {
+                for (ItemData it : data) {
                     if (alHiddenColumns == null)    // Первый раз заполняем все пустые поля в первой записи
                     {
                         alHiddenColumns = new ArrayList<Integer>();
@@ -351,7 +365,7 @@ public class MyTableModel extends AbstractTableModel {
                 if (!alHiddenColumns.isEmpty())    // Заполним индекс
                 {
                     hsHiddenColumns.clear();
-//					for(ItemData2 it : data)
+//					for(ItemData it : data)
                     {
                         for (Integer z : alHiddenColumns) {
                             hsHiddenColumns.add(z);
@@ -384,8 +398,8 @@ public class MyTableModel extends AbstractTableModel {
         }
     }
 
-    public ItemData2 getNewItem() {
-        return new ItemData2(dict);
+    public ItemData getNewItem() {
+        return new ItemData(dict);
     }
 
     // -----------------------------------------------------
@@ -428,21 +442,21 @@ public class MyTableModel extends AbstractTableModel {
 
     public void setSortCol(int i) {
         dict.setSortCol(i);
-        Collections.sort(data, new Comparator<ItemData2>() {
-            public int compare(ItemData2 o1, ItemData2 o2) {
+        Collections.sort(data, new Comparator<ItemData>() {
+            public int compare(ItemData o1, ItemData o2) {
                 return o1.compareTo(o2);
             }
         });
     }
 
-    public DictData2 giveMeDict() {
-        DictData2 dRet = dict;
+    public DictData giveMeDict() {
+        DictData dRet = dict;
         dict = null;
         return dRet;
     }
 
-    public ArrayList<ItemData2> giveMeData() {
-        ArrayList<ItemData2> aRet = data;
+    public ArrayList<ItemData> giveMeData() {
+        ArrayList<ItemData> aRet = data;
         data = null;
         return aRet;
     }
@@ -451,29 +465,38 @@ public class MyTableModel extends AbstractTableModel {
      * Просто добавляет пустую строку это нужно для пустых таблиц
      */
     public void addEmptyItem() {
-        ItemData2 item = new ItemData2(dict);
+        ItemData item = new ItemData(dict);
         for (String sName : alColumnNames) {
             item.set(sName, "");
         }
         data.add(item);
     }
 
-    public void addItem(ItemData2 in_it) {
-        ItemData2 item = new ItemData2(in_it);    // Копирование записи
+    public void addItem(ItemData in_it) {
+        ItemData item = new ItemData(in_it);    // Копирование записи
         item.setDict(dict);    // Просто заменим словарь - все на откуп программера
         data.add(item);        // добавили запись
     }
 
-    public ItemData2 getItem(int iPos) {
+    public ItemData getItem(int iPos) {
         return data.get(iPos);
     }
 
-    public ArrayList<ItemData2> getData() {
+    public ArrayList<ItemData> getData() {
         return data;
     }
 
-    public DictData2 getDict() {
+    public DictData getDict() {
         return dict;
+    }
+    public boolean isEmpty()
+    {
+        boolean bRet = false;
+        if(data == null)
+            bRet = true;
+        if(data.isEmpty())
+            bRet = true;
+        return bRet;
     }
 }
 

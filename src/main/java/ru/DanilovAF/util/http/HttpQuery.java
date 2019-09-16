@@ -68,7 +68,7 @@ public class HttpQuery extends SynThread
 		this.sUrl = sUrl;
 	}
 
-	synchronized public StringBuffer execSyn(String sQuery) {
+	public StringBuffer execSyn(String sQuery) {
 		log.debug("Запрос к серверу \n" + sQuery);
 		HttpListner hListner = new HttpListner();
 //		HttpZabbix2 zbx = new HttpZabbix2(this, query, zbListner);

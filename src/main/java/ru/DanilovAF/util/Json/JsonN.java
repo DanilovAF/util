@@ -28,11 +28,14 @@ public class JsonN
 	static public int OTSTUP_COUNT = 2;
 	private boolean empty;
 
-	public JsonN(String valStr, JsonN parent)
-	{
-		this.val = valStr;
-		this.parent = parent;
-		iType = TYPE_STRING;
+	/**
+	 * Добавление объекта по ключу
+	 * @param valStr
+	 * @param jVal
+	 */
+	public JsonN(String valStr, JsonN jVal) throws MyException {
+		p(valStr, jVal);
+//		iType = TYPE_STRING;
 	}
 
 	public JsonN(String valStr)
@@ -62,6 +65,10 @@ public class JsonN
 	{
 		this.val = new Double(dVal);
 		iType = TYPE_INT;
+	}
+
+	public JsonN(String sKey, String sVal) throws MyException {
+		p(sKey, new JsonN(sVal));
 	}
 
 	/**
@@ -218,13 +225,45 @@ public class JsonN
 		return (this);
 	}
 
+	public JsonN p(JsonN nVal) throws MyException
+	{
+		if(getValType() == 4 || getValType() == 0)
+		{
+			if (val == null)
+			{
+				val = new HashMap<String, JsonN>();
+				iType = 4;
+			}
+		} else
+		{
+			throw new MyException("Данный узел\n"+ toStringJson(true) + "не является объектом, его тип " + getValType() + ".", 0, MyException.LEV_NO_FATAL);
+		}
+		if(nVal != null && nVal.getMap() != null) {
+			for (String sKey : nVal.getMap().keySet()) {
+//				p(sKey, nVal.getVal(sKey));
+				p(sKey, nVal.get(sKey));
+			}
+		} else
+		{
+			if(nVal == null)
+				throw new MyException("Добавляемый узел является null.", 0, MyException.LEV_NO_FATAL);
+			throw new MyException("Добавляемый узел\n"+ nVal.toStringJson(true) + "не является объектом, его тип " + getValType() + ".", 0, MyException.LEV_NO_FATAL);
+		}
+		return (this);
+	}
+
 	public JsonN a(String sVal) throws MyException
 	{
-		a(new JsonN(sVal, this));
+		a(new JsonN(sVal).setParent(this));
 		return(this);
 	}
 
 	public JsonN a(String sKey, String iVal) throws MyException
+	{
+		return a(new JsonN().p(sKey, iVal));
+	}
+
+	public JsonN a(String sKey, int iVal) throws MyException
 	{
 		return a(new JsonN().p(sKey, iVal));
 	}
@@ -322,6 +361,71 @@ public class JsonN
 	}
 
 	/**
+	 * Поиск узла по пути без выбрасывания исключения
+	 * @param sAddr
+	 * @return
+	 */
+	public JsonN getNull(String sAddr)
+	{
+		JsonN nodeRet = this;
+		if(sAddr != null && !sAddr.isEmpty()) {
+			for (String sKey : sAddr.split(",")) {
+				String sIndex = util.field(sKey, "[", 2);
+				int index = -2;
+				if(!sIndex.isEmpty()) {
+					sKey = util.field(sKey, "[", 1);
+					sIndex = util.field(sIndex, "]", 1);
+					index = (int) util.mcn(sIndex, '.');
+				}
+				if (nodeRet.getValType() == TYPE_OBJECT) {
+					if (((HashMap<String, JsonN>) nodeRet.val).containsKey(sKey)) {
+						nodeRet = ((HashMap<String, JsonN>) nodeRet.val).get(sKey);    // Заменим текущий узел
+					} else {
+						nodeRet = null;
+						break;
+					}
+				} else if (nodeRet.getValType() == TYPE_NULL) {
+					nodeRet = null;
+					break;
+				} else if (nodeRet.getValType() == TYPE_DIM) {
+					boolean bFinde = false;
+					if (nodeRet.val != null) {
+						for (JsonN n : ((ArrayList<JsonN>) nodeRet.val)) {
+							if (n.getValType() == TYPE_OBJECT) {
+								if (((HashMap<String, JsonN>) n.val).containsKey(sKey)) {
+									nodeRet = ((HashMap<String, JsonN>) n.val).get(sKey);    // Заменим текущий узел
+									bFinde = true;
+									break;
+								} else {    // А ничего не делаем, мы же в массиве узлов - надо пройти все, чтобы принять решение что с этим делать
+								}
+							} else {    // А ничего не делаем , т.к. может быть в других элементах массива найдем
+							}
+						}
+					}
+					if (!bFinde) {    // не нашли в массиве что будем делать?
+						nodeRet = null;
+						break;
+					}
+				}
+				if(index != -2 && nodeRet != null)
+				{   // Еще надо выделить номер из массива
+					if (nodeRet.getValType() != TYPE_DIM) {
+						nodeRet = null;
+						break;
+					}
+					if(nodeRet.getDim() == null || nodeRet.getDim().size() <= index) {
+						nodeRet = null;
+						break;
+					}
+					if(index == -1)
+						index = nodeRet.getDim().size() - 1;
+					nodeRet = nodeRet.getDim().get(index);
+				}
+			}
+		}
+		return nodeRet;
+	}
+	/**
 	 * Адрес состоит из ключей, если ищем в HashMap - тогда по ключам объектов получаем нужный узел
 	 * Если на пути встречается массив, то идем по элементам массива и ищем внутри или указанное значение, или если внутри массива мапа - ищем по ключу в этом мапе
 	 * @param sAddr
@@ -365,20 +469,17 @@ public class JsonN
 			} else if(nodeRet.getValType() == TYPE_DIM)
 			{
 				boolean bFinde = false;
-				for(JsonN n: ((ArrayList<JsonN>)nodeRet.val))
-				{
-					if(n.getValType() == TYPE_OBJECT)
-					{
-						if(((HashMap<String, JsonN>)n.val).containsKey(sKey))
-						{
-							nodeRet = ((HashMap<String, JsonN>)n.val).get(sKey);	// Заменим текущий узел
-							bFinde = true;
-							break;
-						} else
-						{	// А ничего не делаем, мы же в массиве узлов - надо пройти все, чтобы принять решение что с этим делать
+				if(nodeRet.val != null) {
+					for (JsonN n : ((ArrayList<JsonN>) nodeRet.val)) {
+						if (n.getValType() == TYPE_OBJECT) {
+							if (((HashMap<String, JsonN>) n.val).containsKey(sKey)) {
+								nodeRet = ((HashMap<String, JsonN>) n.val).get(sKey);    // Заменим текущий узел
+								bFinde = true;
+								break;
+							} else {    // А ничего не делаем, мы же в массиве узлов - надо пройти все, чтобы принять решение что с этим делать
+							}
+						} else {    // А ничего не делаем , т.к. может быть в других элементах массива найдем
 						}
-					} else
-					{	// А ничего не делаем , т.к. может быть в других элементах массива найдем
 					}
 				}
 				if(!bFinde)
@@ -423,9 +524,10 @@ public class JsonN
 		return(sBuf);
 	}
 
-	public void setParent(JsonN parent)
+	public JsonN setParent(JsonN parent)
 	{
 		this.parent = parent;
+		return this;
 	}
 	public JsonN getParent()
 	{
@@ -789,6 +891,8 @@ public class JsonN
 		ArrayList<JsonN> cRet = null;
 		if(getValType() == TYPE_DIM)
 		{
+			if(val == null)
+				val = new ArrayList<JsonN>();
 			cRet = (ArrayList<JsonN>) val;
 		} else
 		{
