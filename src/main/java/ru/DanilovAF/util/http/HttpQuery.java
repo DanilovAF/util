@@ -83,9 +83,9 @@ public class HttpQuery extends SynThread
 //			e.printStackTrace();
 		}
 		// zbListner содержит весь вывод
+		removeListner(hListner);
 		hListner.popAllMsg();	// Вычерпали весь стек сообщений
 		StringBuffer sb = hListner.getAnswer();
-		removeListner(hListner);
 		return sb;
 	}
 

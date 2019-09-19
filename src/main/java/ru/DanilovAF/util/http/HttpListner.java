@@ -32,6 +32,7 @@ public class HttpListner extends MsgStack<StringBuffer>
 	{
 		return sb.toString();
 	}
+
 	public StringBuffer getAnswer()
 	{
 		StringBuffer nRet = new StringBuffer();
