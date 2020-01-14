@@ -23,12 +23,21 @@ public class Rep
 
 	public Rep(String rep)
 	{
-		this.rep = new StringBuffer(rep);
+		this.rep = new StringBuffer(inputConvert(rep));
+	}
+
+	/**
+	 * При создании можно конвертировать данные
+	 * @param rep
+	 * @return
+	 */
+	protected String inputConvert(String rep) {
+		return rep;
 	}
 
 	public Rep(StringBuffer rep)
 	{
-		this.rep = new StringBuffer(rep);
+		this.rep = new StringBuffer(inputConvert(rep.toString()));
 	}
 
 	public StringBuffer getRep()

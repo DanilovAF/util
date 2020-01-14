@@ -205,7 +205,62 @@ public class MyTableModel extends AbstractTableModel {
         } catch (MyException e) {
             e.printStackTrace();
         }
+    }
 
+    public MyTableModel(JsonN node) throws MyException {
+        addNodeToTable(node, null, null, 0);
+    }
+
+    public MyTableModel addNodeToTable(JsonN node, String sKeyParent, ItemData item, int lavael) throws MyException {
+        if(item == null) {
+            item = new ItemData(getDict());
+        }
+        if(node != null && !node.isEmpty())
+        {
+            int iType = node.getValType();
+            if(iType == TYPE_DIM) {
+                for (JsonN n : node.getDim()) {
+                    iType = n.getValType();
+                    if(iType == TYPE_DIM || iType == TYPE_OBJECT) {
+                        // Рекурсия
+                        addNodeToTable(n, sKeyParent, item, lavael + 1);
+                    } else {
+                        // Здесь идут значения массива, их надо добавлять в таблицу как значения
+                        String sVal = n.getVal();
+                        sVal = convertValIN(sVal);
+                        if(item.getDict().containsKey(sKeyParent)) {
+                            item.addVm(sKeyParent, sVal);
+                        } else {
+                            item.addAlways(sKeyParent, sVal);
+                        }
+                        int y = 0;
+                    }
+                    if(lavael == 0) {
+                        addItem(item);
+                        item = new ItemData(getDict());
+                    }
+                }
+            } else if(iType == TYPE_OBJECT) {
+                HashMap<String, JsonN> hmVals = node.getMap();
+                for (String sKey : hmVals.keySet()) {
+                    sKey = convertKeyIN(sKey);
+                    iType = hmVals.get(sKey).getValType();
+                    if(iType == TYPE_DIM || iType == TYPE_OBJECT) {
+                        // Рекурсия
+                        addNodeToTable(hmVals.get(sKey), sKey, item, lavael + 1);
+                    } else {
+                        String sVal = hmVals.get(sKey).getVal();
+                        sVal = convertValIN(sVal);
+                        item.addAlways(sKey, sVal);
+                    }
+                    if(lavael == 0) {
+                        addItem(item);
+                        item = new ItemData(getDict());
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**

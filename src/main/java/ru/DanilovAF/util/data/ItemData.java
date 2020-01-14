@@ -189,7 +189,7 @@ public class ItemData implements Comparable<ItemData>
 			index = ((int) util.mcn(in_sKey, '.'));
 		} else
 		{   // Запрос по названию атрибута
-			if(dict.getDict().containsKey(in_sKey))
+			if(dict != null && dict.getDict() != null && dict.getDict().containsKey(in_sKey))
 			{
 				index = ((int) util.mcn(dict.getDict().get(in_sKey), '.'));
 			}

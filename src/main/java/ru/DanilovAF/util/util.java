@@ -506,6 +506,20 @@ public class util
 		return(iRet);
 	}
 
+	/**
+	 * Получить подсеть
+	 * @param sIp
+	 * @param sMask
+	 * @return
+	 */
+	public static long getIpNet(String sIp, String sMask)
+	{
+		long lIp = util.ip2int(sIp);
+		long lMask = util.ip2int(sMask);
+		long lFirstIp= (lIp & lMask);
+		return lFirstIp;
+	}
+
 	public static void main(String[] args)
 	{
 //		System.out.println(divOnToken("NAME: \"Switch System\", DESCR: \"Cisco Systems, Inc. WS-C4507R+E 7 slot switch \"", ",", null));

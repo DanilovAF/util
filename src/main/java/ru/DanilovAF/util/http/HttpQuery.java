@@ -133,7 +133,7 @@ public class HttpQuery extends SynThread
 
 					oSocket.setSoTimeout(1000); // Таймаут на чтение сокета, для того чтобы не блокировать поток
 
-					if (log.isInfoEnabled()) {log.info("Отправляем в Сокет:\n" + sJsonH); }
+					log.info("Отправляем в Сокет:\n" + sJsonH);
 					to_server.print(sJsonH);  // Записали в сокет
 					to_server.flush();      // Сбросили буфер
 
