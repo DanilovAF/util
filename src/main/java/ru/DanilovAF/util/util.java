@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -742,6 +743,14 @@ public class util
 	 * @return
 	 */
 	public static String hexStringTostring(String in_s) throws UnsupportedEncodingException {
+		return hexStringTostring(in_s, null);
+	}
+	/**
+	 * Преобрадовать строку их формата 01D3DF  в строку ASCII
+	 * @param in_s
+	 * @return
+	 */
+	public static String hexStringTostring(String in_s, String encod) throws UnsupportedEncodingException {
 		int n = in_s.length();
 		byte [] bb = new byte[n/2];
 		int y = 0;
@@ -754,9 +763,13 @@ public class util
 			int iab = (ia << 4) + ib;
 			bb[y++] = (byte) iab;
 		}
-		String ssRet = new String(bb, "UTF8");
+		if(encod == null || encod.isEmpty()) {
+			encod = "UTF-8";
+		}
+		String ssRet = new String(bb, encod);
 		return ssRet;
 	}
+
 	private static int hexToInt(char ch) {
 		if ('a' <= ch && ch <= 'f') { return ch - 'a' + 10; }
 		if ('A' <= ch && ch <= 'F') { return ch - 'A' + 10; }
@@ -1091,6 +1104,27 @@ public class util
 			}
 		}
 		return sRet.toString();
+	}
+
+	static public void lestAllCharset() {
+		try {
+			SortedMap<String,Charset> registeredCharsets = Charset.availableCharsets();
+			for ( Iterator<Charset> charsets = registeredCharsets.values().iterator(); charsets.hasNext(); ) {
+				Charset charset = charsets.next();
+				// Display name
+				System.out.print(charset.name() + " Aliases: [");
+				// Display aliases
+				for ( Iterator<String> aliases = charset.aliases().iterator(); aliases.hasNext(); ) {
+					System.out.print(aliases.next());
+					if ( aliases.hasNext() ) System.out.print(", ");
+				}
+				System.out.println("]");
+			}
+			System.out.println("\nIs cp866 supported? - " + Charset.isSupported("cp866")); // testing aliase
+			System.out.println("Is IBM866 supported? - " + Charset.isSupported("IBM866"));
+		} catch ( Exception ex ) {
+			ex.printStackTrace();
+		}
 	}
 
 }

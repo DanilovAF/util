@@ -42,6 +42,16 @@ public class ItemData implements Comparable<ItemData>
 			}
 		}
 	}
+	public boolean isEmpty() {
+		boolean bRet = true;
+		for(String sAm: item) {
+			if(sAm != null && !sAm.isEmpty()) {
+				bRet = false;
+				break;
+			}
+		}
+		return bRet;
+	}
 
 	@Override
 	public String toString() {

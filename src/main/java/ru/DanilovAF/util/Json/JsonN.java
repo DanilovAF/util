@@ -360,6 +360,23 @@ public class JsonN
 		return get(sAddr, true);
 	}
 
+	public JsonN remove(String sAddr) throws MyException
+	{
+		JsonN nodeRet = this;
+		JsonN nodeDel = getNull(sAddr);
+		if(nodeDel != null) {
+			JsonN nodeDelparent = nodeDel.getParent();
+			if(nodeDelparent.iType == TYPE_OBJECT)
+			{
+				String sKey = util.field(sAddr, ",", -1);
+				nodeDelparent.getMap().remove(sKey);
+			} else if(nodeDelparent.iType == TYPE_DIM) {
+
+			}
+		}
+		return nodeRet;
+	}
+
 	/**
 	 * Поиск узла по пути без выбрасывания исключения
 	 * @param sAddr

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.DanilovAF.util.util;
 
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -29,6 +30,7 @@ public class MyHttp
 	private PrintWriter to_server;  // Для записи в сокет, запись производить синхронизировано
 
 	private String host;
+
 	private int port = 80;
 	private int timeExec = 20000;   // Время исполнения
 	private int oneTime = 1000;   // Время исполнения одного ожидания
@@ -39,6 +41,7 @@ public class MyHttp
 	private String url = null;
 	private int metod = 1;  // 1 - GET 2- POST
 	private String httpVersion = "1.0";
+	private boolean flagSsh = false;
 
 	public MyHttp setMetodPost()
 	{
@@ -50,14 +53,47 @@ public class MyHttp
 		metod = 1;
 		return this;
 	}
+	public String getHost()
+	{
+		return host;
+	}
+
 
 	public MyHttp(String host) {
 		this.host = host;
 	}
 
+	public boolean isFlagSsh() {
+		return flagSsh;
+	}
+
+	public void setFlagSsh(boolean flagSsh) {
+		this.flagSsh = flagSsh;
+	}
+	public MyHttp setSsh() {
+		this.flagSsh = true;
+		port = 443;
+		return this;
+	}
+
+	/**
+	 * Получает содеинения с минимальными настроками безопасности, главное соединиться.
+	 * @return
+	 * @throws IOException
+	 */
 	public Socket getSocket() throws IOException
 	{
-		return new Socket(host, port);
+		if(oSocket != null) {
+			myCloseSocet();
+			oSocket = null;
+		}
+		if(flagSsh) {
+			SshTrustAllSslSocket ts = new SshTrustAllSslSocket();
+			oSocket = ts.getNewSslSocket(host, port);
+		} else {
+			oSocket = new Socket(host, port);
+		}
+		return oSocket;
 	}
 	public String getQueryGet(String sUrl) {
 		return (getQueryGet(sUrl, null));
@@ -383,6 +419,13 @@ public class MyHttp
 		String encoding = new sun.misc.BASE64Encoder().encode(userPassword.getBytes());
 		setHederOpt("Authorization", "Basic " + encoding);
 		return this;
+	}
+
+	public boolean isContainHeader(String sKey) {
+		if(hsHeader.contains(sKey)) {
+			return true;
+		}
+		return false;
 	}
 
 	public MyHttp setHost(String host) {
