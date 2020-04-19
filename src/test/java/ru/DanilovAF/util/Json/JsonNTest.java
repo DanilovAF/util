@@ -70,6 +70,62 @@ public class JsonNTest {
             fail();
         }
     }
+
+    @Test
+    public void test_getNull() throws Exception {
+        JsonN node = JsonN.inputFileUTF_0A(new File("D:\\DALOV\\JAVA\\util\\test.json"));
+        System.out.println(node.toStringJson(true));
+        JsonN n = node.getNull("result,stop");
+        assertThat(n).isNotNull();
+        System.out.println(n.toStringJson(true));
+        System.out.println(n.getVal());
+        n = node.getN("result").getDim().get(0).getNull("mac");
+        assertThat(n).isNotNull();
+        System.out.println(n.toStringJson(true));
+        n = node.getNull("result,stopp");
+        assertThat(n).isNull();
+        System.out.println(n);
+        n = node.getNull("");
+        assertThat(n).isNotNull();
+        n = node.getNull(null);
+        assertThat(n).isNotNull();
+        n = node.getNull("result[2],mac");
+        assertThat(n).isNotNull();
+        System.out.println(n.toStringJson(true));
+        n = node.getNull("result[-1],mac");
+        assertThat(n).isNotNull();
+        System.out.println(n.toStringJson(true));
+    }
+
+    /**
+     * СОздать массив и заполнить его в цикле
+     * Добавляется пустой объект, затем в него заталкиваем значения
+     * @throws Exception
+     */
+    @Test
+    public void test_addDim() throws Exception {
+        JsonN n = new JsonN();
+        n.a(new JsonN("groupid", new JsonN("10")));
+        n.a(new JsonN("groupid", new JsonN("20")));
+        n = new JsonN("groups", n);
+
+        System.out.println(n.toStringJson(true));
+
+        JsonN query = new JsonN();
+        query.p("method", "host.update").p("params", new JsonN("hostid", "10").p(n));
+        System.out.println(query.toStringJson(true));
+        int y = 0;
+
+    }
+
+    @Test
+    public void test_remove() throws Exception
+    {
+        JsonN node = JsonN.inputFileUTF_0A(new File("D:\\DALOV\\JAVA\\util\\testDel.json"));
+        System.out.println(node.toStringJson(true));
+        node.remove("result,interfaces");
+        System.out.println(node.toStringJson(true));
+    }
 }
 
 

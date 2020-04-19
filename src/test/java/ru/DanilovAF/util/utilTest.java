@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.fest.assertions.api.Assertions.assertThat;
-import static org.junit.Assert.*;
 
 /**
  * Created by Aleksandr.Danilov on 03.12.2018.
@@ -153,6 +152,21 @@ public class utilTest {
         sRet = util.replaceVars(sStr, null, hmVars);
         System.out.println(sStr + " = " + sRet);
 
+    }
+
+    @Test
+    public void test_getFirsIp() throws Exception {
+        long l = util.getIpNet("10.162.16.34", "255.255.254.0");
+        System.out.println(l + " " + util.int2ip(l));
+
+        l = util.getIpNet("10.162.17.34", "255.255.254.0");
+        System.out.println(l + " " + util.int2ip(l));
+
+        l = util.getIpNet("10.162.127.221", "255.255.254.252");
+        System.out.println(l + " " + util.int2ip(l));
+
+        l = util.getIpNet("10.162.46.2", "255.255.254.240");
+        System.out.println(l + " " + util.int2ip(l));
     }
 }
 

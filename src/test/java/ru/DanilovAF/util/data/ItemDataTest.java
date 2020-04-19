@@ -1,32 +1,29 @@
 package ru.DanilovAF.util.data;
 
 import org.junit.Test;
-import sun.misc.VM;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-import static org.junit.Assert.*;
-
 /**
  * Created by aleksandr.danilov on 30.01.2019.
  */
-public class ItemData2Test {
+public class ItemDataTest {
 
     @Test
     public void test_addVm() throws Exception {
-        DictData2 dict = new DictData2();
+        DictData dict = new DictData();
         dict.addField("id");
         dict.addField("name");
 
-        ItemData2 item = new ItemData2(dict);
+        ItemData item = new ItemData(dict);
         item.add("id", "10");
         item.add("name", "Иван");
         item.addVm("name", "Сергей");
 
         String ss = item.get("name");
-        for(String s: ss.split(ItemData2.VM))
+        for(String s: ss.split(ItemData.VM))
         {
             System.out.println(s);
         }
@@ -36,11 +33,11 @@ public class ItemData2Test {
 
     @Test
     public void test_addVm2() throws Exception {
-        DictData2 dict = new DictData2();
+        DictData dict = new DictData();
         dict.addField("id");
         dict.addField("name");
 
-        ItemData2 item = new ItemData2(dict);
+        ItemData item = new ItemData(dict);
         item.add("id", "10");
         item.add("name", "Иван");
         item.addVm("name", "Сергей");
@@ -54,11 +51,11 @@ public class ItemData2Test {
 
     @Test
     public void test_addAlways() throws Exception {
-        DictData2 dict = new DictData2();
+        DictData dict = new DictData();
         dict.addField("id");
         dict.addField("name");
 
-        ItemData2 item = new ItemData2(dict);
+        ItemData item = new ItemData(dict);
         item.add("id", "10");
         item.add("name", "Иван");
         item.addVm("name", "Сергей");
@@ -73,9 +70,9 @@ public class ItemData2Test {
         Connection conn = GetConnection.getConnectionOra("BILLING.af.atol.int", "BILLING", "dialer", "dialer");
         Statement st = conn.createStatement();
         ResultSet rs = st.executeQuery("SELECT * FROM job");
-        DictData2 dd = new DictData2(rs);
+        DictData dd = new DictData(rs);
 
-        ItemData2 it = new ItemData2(dd);
+        ItemData it = new ItemData(dd);
         System.out.println(it.getDict().toString());
 
         while (rs.next()) {
