@@ -1,10 +1,14 @@
 package ru.DanilovAF.util.rep;
 
 import ru.DanilovAF.util.M;
+import ru.DanilovAF.util.data.ItemData;
+import ru.DanilovAF.util.data.MyTableModel;
 import ru.DanilovAF.util.util;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Aleksandr.Danilov on 16.01.2020.
@@ -18,14 +22,7 @@ import java.util.ArrayList;
 public class AnswerBuffer {
 	public StringBuilder val;
 
-	protected ArrayList<Point> alCmd = new ArrayList<>();
-	protected ArrayList<Point> alRet = new ArrayList<>();
-	protected ArrayList<Point> alErr = new ArrayList<>();
-
 	public boolean isEmpry() {
-		if(alCmd.isEmpty() && alRet.isEmpty() && alErr.isEmpty()) {
-			return true;
-		}
 		return false;
 	}
 
@@ -60,13 +57,13 @@ public class AnswerBuffer {
 	}
 
 	// Найдет все позиции вхождения блока
-	public ArrayList<Point> getAllPart(String sBeg, String sEnd, Point fromPos) {
+	public ArrayList<PointTxt> getAllPart(String sBeg, String sEnd, PointTxt fromPos) {
 		if (fromPos == null)
-			fromPos = new Point();
-		ArrayList<Point> alRet = new ArrayList<>();
+			fromPos = new PointTxt();
+		ArrayList<PointTxt> alRet = new ArrayList<>();
 
-		while ((fromPos = getNextPart(sBeg, sEnd, fromPos)).x != 0) {
-			alRet.add(new Point(fromPos));
+		while ((fromPos = getPosBegStrToEndStr(sBeg, sEnd, fromPos)).x != -1) {
+			alRet.add(new PointTxt(fromPos));
 		}
 		return alRet;
 	}
@@ -76,10 +73,10 @@ public class AnswerBuffer {
 	 * @param iPos
 	 * @return
 	 */
-	public int getNextLine(int iPos) {
+	public int getEndLinePos(int iPos) {
 		int intEn = val.indexOf("\n", iPos);
 		int intEr = val.indexOf("\r", iPos);
-		if(intEn < intEr)
+		if(intEn > intEr && intEr != -1)
 		{
 			intEn = intEr;
 		}
@@ -91,32 +88,47 @@ public class AnswerBuffer {
 	}
 
 	/**
-	 * Находит начало по строке sBeg и конец блока по строке sEnd
+	 * Находит начало по строке sBeg и конец блока по строке sEnd находит позиции между началом и концом
+	 * поиск осуществляет с позиции fromPos.y
 	 * Возвращает позиции
+	 * Раньше называлась getNextPart
+	 *
 	 * @param sBeg
 	 * @param sEnd
 	 * @param fromPos
 	 * @return
 	 */
-	public Point getNextPart(String sBeg, String sEnd, Point fromPos) {
+	public PointTxt getPosBegStrToEndStr(String sBeg, String sEnd, PointTxt fromPos) {
+		// Если fromPos == null - начнем поиск с начала строки
 		if(fromPos == null)
-			fromPos = new Point();
-		int iPos = val.indexOf(sBeg, fromPos.y);
-		int iPosEnd = 0;
-		Point p;
-		if(iPos != -1) {
-			iPos = getNextLine(iPos);   // Следующая строка
-			iPosEnd = val.indexOf(sEnd, iPos);
-//			iPosEnd = iPosEnd + sEnd.length();
-			if(iPosEnd == -1) {
-				iPosEnd = val.length();
-			} else {
-				// Взять предыдцщую строку
-			}
-			fromPos = new Point(iPos, iPosEnd);
+			fromPos = new PointTxt();
+		// Проверка на пусто
+		if(sBeg !=null && !sBeg.isEmpty() && val != null)
+		{
+			// Начало искомого элемента
+			int iPos = val.indexOf(sBeg, fromPos.y);
+			int iPosEnd = 0;
+			if (iPos != -1)
+			{
+				iPos = getEndLinePos(iPos);   // Следующая строка
+				if(sEnd != null && !sEnd.isEmpty()) // Если есть строка конца
+				{
+					iPosEnd = val.indexOf(sEnd, iPos);
+					if (iPosEnd == -1)
+					{
+						iPosEnd = val.length();
+					} else
+					{
+						// Взять предыдцщую строку
+					}
+				} else
+					iPosEnd = val.length();
+				fromPos = new PointTxt(iPos, iPosEnd);
+//				fromPos.e = getEndLinePos(iPosEnd);
+			} else
+				fromPos = new PointTxt();
 		} else
-			fromPos = new Point();
-
+			fromPos = new PointTxt();
 		return fromPos;
 	}
 
@@ -128,7 +140,7 @@ public class AnswerBuffer {
 	 */
 	public String getVals(String sKey, String sDelim) {
 		StringBuilder sb = new StringBuilder();
-		Point pos = new Point(0, 0);
+		PointTxt pos = new PointTxt();
 		String val;
 		while((val = getFirstVal(sKey, sDelim, pos)) != null) {
 			sb.append(M.am).append(val);
@@ -141,7 +153,7 @@ public class AnswerBuffer {
 		return(getVals(sKey, null));
 	}
 
-	public String getFirstVal(String sKey, String sDelim, Point frmPos) {
+	public String getFirstVal(String sKey, String sDelim, PointTxt frmPos) {
 		String sRet = "";
 		if(sDelim == null || sDelim.isEmpty()) {
 			sDelim = ":=";
@@ -164,40 +176,36 @@ public class AnswerBuffer {
 
 	/**
 	 * Поиск значения по ключу  - значение от параметра до конца строки
-	 * Во вторую координату помещаем начало найденной строки
+	 * Возвращается найленная строка с начала поиска sKey до конца строки
+	 * в точку помещается начало строки в которой нашли и конец этой строки в общем буфере, в котором искали
 	 * @param sKey
 	 * @return
 	 */
-	public String getFirstLine(String sKey, Point frmPos) {
+	public String getFirstLine(String sKey, PointTxt frmPos) {
 		String sRet = null;
 		if(frmPos == null) {
-			frmPos = new Point(0, 0);
+			frmPos = new PointTxt();
 		}
-		int ind = val.indexOf(sKey, frmPos.x);
+//		int ind = val.indexOf(sKey, frmPos.x);
+		int ind = val.indexOf(sKey, frmPos.y);
 		if(ind != -1)	// Условие выхода
 		{
-			frmPos.x = ind + 1;
+			frmPos.x = ind;
+			// Найдем позицию окончания найденного
+			frmPos.y = frmPos.x + sKey.length();
 			// Найдем окончание строки
-			int intEn = val.indexOf("\n", ind + sKey.length());
-			int intEr = val.indexOf("\r", ind + sKey.length());
-			if(intEn > intEr)
-			{
-				intEn = intEr;
-			}
-			if(intEn == -1)
-			{
-				intEn = val.length();
-			}
-			sRet = val.substring(ind, intEn);
-
+			frmPos.e = getEndLinePos(frmPos.y) - 1;
+			// Выделим найденный фрагмент с начала найденного до конца строки
+			sRet = val.substring(ind, frmPos.e);
+			// найдем начало строки в которой нашли
 			for(int i = ind; i >= 0; i--) {
 				char ch = val.charAt(i);
 				if(val.charAt(i) == '\r' || val.charAt(i) == '\n') {
-					frmPos.y = i + 1;
+					frmPos.b = i + 1;
 					break;
 				}
 				if(i == 0) {
-					frmPos.y = 0;
+					frmPos.b = 0;
 				}
 			}
 		}
@@ -210,22 +218,11 @@ public class AnswerBuffer {
 	/**
 	 * Пройти по буферу, если встретится ошибка, то подкинуть ее
 	 * Пройдем по всему буферу и проанализируем
-	 * PARSE_ERROR=
 	 *
 	 * @return
 	 */
 	public AnswerBuffer checkFirstError() {
 
-		int iPos = 0;
-		while((iPos = val.indexOf("PARSE_ERROR=", iPos)) != -1) {
-			int iPosEnd = val.indexOf("\n", iPos);
-			if(iPosEnd == -1) {
-				iPosEnd = val.length();
-			}
-			String sBuf = val.substring(iPos + "PARSE_ERROR=".length(), iPosEnd);
-			System.out.println(sBuf);
-			iPos = iPosEnd;
-		}
 		return this;
 	}
 
@@ -256,8 +253,12 @@ public class AnswerBuffer {
 //		return this;
 //	}
 
-	public String substring(Point n) {
-		return val.substring(n.x, n.y);
+	public String substring(PointTxt n) {
+		if(n.x != -1 && n.y != -1)
+		{
+			return val.substring(n.x, n.y);
+		} else
+			return "";
 	}
 
 	public class posAnswerCisco {
@@ -280,36 +281,129 @@ public class AnswerBuffer {
 		}
 	}
 
-	public String getCmd(int iCmd) throws Exception {
-		return getData(iCmd, alCmd);
-	}
-	public int getCountCmd() {
-		return alCmd.size();
-	}
-	public String getRet(int iRet) throws Exception {
-		return getData(iRet, alRet);
-	}
-	public int getCountRet() {
-		return alRet.size();
-	}
-	public String getData(int iData, ArrayList<Point> data) throws Exception {
+	public String getData(int iData, ArrayList<PointTxt> data) throws Exception {
 		String sRet = null;
-		if(iData < data.size()) {
+		if(iData == -1) {
+			iData = data.size() - 1;
+		}
+		if(iData <= data.size()) {
 			sRet = util.trimLR(val.substring(data.get(iData).x, data.get(iData).y), " \n\r\t");
 		} else {
 			throw new Exception("Выход за пределы индекса массива. Обращение к " + iData + " элементу массива\n" + data);
 		}
 		return sRet;
 	}
-	public String getErr(int iErr) throws Exception {
-		String sRet = getData(iErr, alErr);
-		sRet = util.field(sRet, "=", 2);
-		sRet = util.trimLR(sRet, "\"");
-		return sRet;
-	}
-	public int getCountErr() {
-		return alErr.size();
-	}
 	public void checkErrors() throws Exception {
 	}
+
+	@Override
+	public String toString()
+	{
+		return val.toString();
+	}
+
+	public MyTableModel getTable(String sBeg, Pattern pat, String sEnd, int fromPos, String sDict) {
+		MyTableModel tab = new MyTableModel();
+
+		// Получение начала строки откуда будем парсить таблицу
+		PointTxt p = new PointTxt(0, fromPos);
+		String sHeader = getFirstLine(sBeg, p);
+		PointTxt pPos = new PointTxt(p);
+		p.y = p.x;
+		// Аолучение окончания того в чем будет парсить таблицу
+		p = getPosBegStrToEndStr(sBeg, sEnd, p);
+		pPos.y = p.y;
+
+		ArrayList<Integer> pos = new ArrayList<Integer>();
+		boolean flagHead = false;
+		StringBuilder sbDict = new StringBuilder();
+//		System.out.println(substring(pPos));
+
+		for(String sLine: substring(pPos).split("\n", -1)) {
+			if(!flagHead)
+			{   // Ищем заголовок
+				Matcher m = pat.matcher(sLine);
+				if (m.find())
+				{    // Строка заголовка найдена надо ее распарсить по позициям начала столбцов. Начало столбца - начало очередной группы выделения
+					for (int i = 2; i <= m.groupCount(); i++)    // Идем по группам, начало каждой группы - начало столбца
+					{
+						pos.add(m.start(i));
+						String sName = m.group(i - 1);
+						if(sName != null && !sName.isEmpty()) {
+							sbDict.append(";").append(sName);
+						}
+					}
+					sbDict.append(";").append(m.group(m.groupCount())); // Добавили последний заголовок
+					flagHead = true;
+					if(sbDict.length() > 0)
+						sbDict.delete(0, 1);    // Удалили лидирующее чтока с запятой
+				}
+			} else {
+				// Если словарь пуст, то заменил его именами столбцов
+				if(sDict == null || sDict.isEmpty())
+					sDict = sbDict.toString();
+				String[] dict = sDict.split(";", -1);
+				ItemData item = new ItemData(tab.getDict());
+				int ppp = 0;
+				int len = sLine.length();
+				for(int  i = 0; i < pos.size(); i++)
+				{
+					if(len < pos.get(i))
+					{
+						item.addAlways(dict[i], "");
+					} else
+					{
+						item.addAlways(dict[i], sLine.substring(ppp, pos.get(i)).trim());
+					}
+					ppp = pos.get(i);
+				}
+				if(len < ppp)
+				{
+					item.addAlways(dict[dict.length - 1], "");
+				} else
+				{
+					item.addAlways(dict[dict.length - 1], sLine.substring(ppp).trim());
+				}
+				tab.addItem(item);
+			}
+		}
+		return tab;
+	}
+
+	/**
+	 * Получаем из вывода таблицу, если строка подходит под паттерн.
+	 * Необходимо выделить предварительно из вывода только табличную часть.
+	 * должен быть паттерн, который однозначно выделит элементы таблицы
+	 * @param inPatTable
+	 * @return
+	 */
+	public MyTableModel getTablePart(int fromPos, Pattern inPatTable, String sDict)
+	{
+		MyTableModel tab = new MyTableModel();
+		if(sDict != null && !sDict.isEmpty())
+		{
+			for (String sWord : sDict.split(";"))
+			{
+				if(!sWord.isEmpty())
+					tab.getDict().addField(sWord);
+			}
+		}
+		String [] lines = val.substring(fromPos).split("[\\n\\r]");
+		for(String sLine: lines)
+		{
+			Matcher m = inPatTable.matcher(sLine);
+			if(m.find())
+			{	// Строка нам подходит - загоним ее в таблицу
+				ItemData item = new ItemData(tab.getDict());
+				for(int i = 1; i <= m.groupCount(); i++)	// Идем по группам, начало каждой группы - начало столбца
+				{
+					item.add(i - 1, m.group(i));
+				}
+				tab.addItem(item);
+			}
+			int y = 0;
+		}
+		return tab;
+	}
+
 }

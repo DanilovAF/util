@@ -40,7 +40,7 @@ public class MyHttp
 
 	private String url = null;
 	private int metod = 1;  // 1 - GET 2- POST
-	private String httpVersion = "1.0";
+	private int httpVersion = 1;
 	private boolean flagSsh = false;
 
 	public MyHttp setMetodPost()
@@ -99,7 +99,7 @@ public class MyHttp
 		return (getQueryGet(sUrl, null));
 	}
 	public MyHttp setHttpVer11() {
-		httpVersion = "1.1";
+		httpVersion = 11;
 		return this;
 	}
 	/**
@@ -113,10 +113,11 @@ public class MyHttp
 		String sMetod = "GET ";
 		if(metod == 2)
 			sMetod = "POST ";
-		if(httpVersion == null || httpVersion.isEmpty())
-			httpVersion = "1.0";
+		String shttpVersion = "1.0";
+		if(httpVersion == 11)
+			shttpVersion = "1.1";
 
-		StringBuffer sbJsonH = new StringBuffer().append(sMetod).append(sUrl).append(" HTTP/").append(httpVersion).append("\r\n");
+		StringBuffer sbJsonH = new StringBuffer().append(sMetod).append(sUrl).append(" HTTP/").append(shttpVersion).append("\r\n");
 //		sbJsonH.append("Host: ").append(host).append("\r\n");
 		if(alHeader.isEmpty())
 			setHeaderHost();
@@ -214,10 +215,13 @@ public class MyHttp
 		{
 			// Открыть сокет
 			log.trace("Создаем сокет " + this);
-			oSocket = getSocket();
 
-			from_server = new InputStreamReader(oSocket.getInputStream());
-			to_server = new PrintWriter(oSocket.getOutputStream());
+			if(oSocket == null || from_server == null || to_server == null)
+			{
+				oSocket = getSocket();
+				from_server = new InputStreamReader(oSocket.getInputStream());
+				to_server = new PrintWriter(oSocket.getOutputStream());
+			}
 
 			oSocket.setSoTimeout(oneTime); // Таймаут на чтение сокета, для того чтобы не блокировать поток
 			int maxCount = timeExec / oneTime;
@@ -240,6 +244,7 @@ public class MyHttp
 						// считаем удаленная сторона закрыла соеднение
 						log.trace("Закрыл соединение сервер...");
 						flagDo = false;
+						myCloseSocet();
 					}
 					if (chars_read > 0)
 					{
@@ -247,12 +252,25 @@ public class MyHttp
 						log.trace("Прочитали с сокета:\n" + as);
 						sbFrom.append(as);
 						// Анализ на наличие атрибута длинны сообщения и попытка поймать эту длинну
-						int iLen = getHeaderContentLengthAll(sbFrom);
-						if(iLen > 0 && sbFrom.length() >= iLen) {
+						int iLen = 0;
+						if(httpVersion == 1)
+						{
+							iLen = getHeaderContentLengthAll(sbFrom);
+						} else if(httpVersion == 11) {
+							String sLen = util.field(sbFrom.toString(), "\r\n\r\n", 2);
+							iLen = (int) util.mcn(sLen, '.');
+						}
+						if (iLen > 0 && sbFrom.length() >= iLen)
+						{
 							// Можно рвать соединение - пакет получен
 							log.trace("Пришел пакет целиком...");
 							flagDo = false;
+							if (httpVersion == 1)
+							{
+								myCloseSocet();
+							}
 						}
+
 					}
 				} catch (SocketTimeoutException e)
 				{   // Ну таймаут и таймаут - проверим надо ли выхордить Можно сюда вставить таймер по зависанию запроса, если прошло например 10 таймаутов, то пора завершаться с ошибкой
@@ -262,7 +280,6 @@ public class MyHttp
 					log.trace("Таймаут в сокете...");
 				}
 			}
-			myCloseSocet();
 			log.trace("Корректная остановка потока работы с Сокетом!");
 		} catch (Exception e)
 		{   // Инициализация сокета заново
@@ -300,8 +317,9 @@ public class MyHttp
 		return iLeData;
 	}
 
-	private void myCloseSocet()
+	public void myCloseSocet()
 	{
+		log.trace("Закроем сокет !!!");
 		if(oSocket != null)
 		{
 			try
