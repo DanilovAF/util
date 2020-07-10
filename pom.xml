@@ -84,10 +84,15 @@
             <version>2.0M10</version>
             <scope>test</scope>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.oracle</groupId>-->
+<!--            <artifactId>ojdbc6</artifactId>-->
+<!--            <version>11.2.0</version>-->
+<!--        </dependency>-->
         <dependency>
-            <groupId>com.oracle</groupId>
+            <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc6</artifactId>
-            <version>11.2.0</version>
+            <version>11.2.0.4</version>
         </dependency>
 
     </dependencies>

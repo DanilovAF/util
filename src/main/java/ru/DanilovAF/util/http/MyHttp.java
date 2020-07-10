@@ -32,6 +32,17 @@ public class MyHttp
 	private String host;
 
 	private int port = 80;
+
+	public int getTimeExec()
+	{
+		return timeExec;
+	}
+
+	public void setTimeExec(int timeExec)
+	{
+		this.timeExec = timeExec;
+	}
+
 	private int timeExec = 20000;   // Время исполнения
 	private int oneTime = 1000;   // Время исполнения одного ожидания
 
